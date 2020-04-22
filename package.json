@@ -1,0 +1,25 @@
+{
+  "name": "graphQL_try",
+  "version": "1.0.0",
+  "description": "- 为什么要用graphql？？？\r 在实际的工作中，比如我需要查询大屏列表信息 列表中的大屏名称是我最关心的 其他的信息我不需要 现在的项目中为了保持接口的统一性(\r 其他的某个地方也有需要调用的)  导致的问题就是这个接口非常的中  现在在查询大屏列表页面就非常的卡 因为里面无用的信息太多了\r 我们现在用graphql目的是把接口变成动态的",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GuessFinger/graphQL_try.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GuessFinger/graphQL_try/issues"
+  },
+  "homepage": "https://github.com/GuessFinger/graphQL_try#readme",
+  "devDependencies": {
+    "express": "^4.17.1",
+    "express-graphql": "^0.9.0",
+    "graphql": "^15.0.0"
+  }
+}
