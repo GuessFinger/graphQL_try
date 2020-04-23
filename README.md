@@ -191,9 +191,174 @@ mutation CreateReviewForEpisode($ep: Episode!, $review: ReviewInput!) {
 内联片段(inline Fragements)
 元字段(Meta fields)
 
+Scheam和类型
+
+类型系统(Type System)
+1. 我们以一个特殊的对象 root 开始
+2. 选择上面的hero字段
+3. 对于hero返回的对象 我们选中name 和appearsIn 字段
+
+之前也了解过了 GraphQL 查询的结构和结果非常的相似  因此就算我们不知道服务器的情况 我们依旧可以预测返回什么结果  
+但是一个关于我们所需要的数据的确切描述依旧很有意义 我们能选择什么字段  服务器会返回哪种对象？ 这些对象有哪些字段可用？  这就是我们引入schmea的原因
+
+每一个GraphQL 服务都会定义一套类型 用以描述可能从那个服务查询到的数据 每当查询来临的时候 服务器就会根据schema验证并执行查询  验证并执行查询  感觉有点像预查询
+
+对象类型和字段(Object Types and Fields)
+一个 GraphQL scheam 中最基本的组件是对象类型  它表示你可以从服务器上获取到什么类型的对象 以及这个对象有什么字段
+```
+type Character{
+	name:String!
+	appearsIn:[Episode!]!
+}
+我们来解释一下上面的语法
+
+```
+- Character 是一个GraphQL对象类型 表示其是一个拥有一些字段的类型 我们的schema中大多数类型都会是对象类型
+- name 和 appearsIn 是Character 类型上的字段 这意味着在一个操作Character类型的GraphQL查询中的任何部分 都只能出现 name 和 appearsIn 字段  注意修饰词 只能
+- String  内置的标量类型之一 解释说这个标量没有办法进行次级选择   (后面会介绍内置的标量类型)
+- String! 表示整个字段是非空的 这个上面也是有说的
+- [Episode!]! 表示一个Episode数组  最后面那个! 表示你一定能得到一个数组(可能是零个或者多个对象) 由于Episode! 也是非空的 所以你可以预期到数组中的每个项目都是一个Episode 对象
 
 
+参数(Arguments) 
+GraphQL 对象类型上的每一个字段都可能有零个或者多个参数  
+```
+type Starship{
+	id:ID!
+	name:String!
+	length(unit:LengthUnit = METER):Float
+}
+```
+在GraphQL中所有参数都是具名的 并且进行具名传递  参数可能是必选的或者可选的 当一个参数是可选的 我们可以定义一个默认值  上面的例子 如果unit 没有传递 它将会被默认认为METER
 
+
+查询和变更类型(The Query and Mutation Types)
+我们的schema中大多数的类型都是普通对象类型  但是一个schema内有两个特殊类型
+```
+scheam {
+	query:Query
+	mutation:Mutation
+}
+```
+每一个GraphQL 服务都有一个query类型  可能有一个mutation类型 这个类型和常规对象差不多 他们之所以特殊就是因为他们定义了每一个GraphQL查询的入口
+```
+type Query{
+	hero(episode:Episode):Character
+	droid(id:ID!):Droid
+}
+```
+变更也是类似的工作方式 —— 你在 Mutation 类型上定义一些字段，然后这些字段将作为 mutation 根字段使用，接着你就能在你的查询中调用。
+
+标量类型(Scalar Types) 标量类型你没有任何次级字段  因为他们表示对象GraphQL查询的叶子节点
+- Int  有符号32位整数
+- Float 有符号的双精度浮点值
+- String UTF-8 字符序列
+- Boolean true/false
+- ID 表示一个唯一的标识符 
+
+大部分的GraphQL服务的实现中 都有自定义标量类型的方式  我们可以定义一个Date 类型
+我们指定Date类型应该总是被序列化成整型时间戳
+
+枚举类型(Enumeration Types) 是一种特殊的标量 它限制在一个特殊的可选值的集合内
+1. 验证这个类型的任何参数都是可选值的某一个
+2. 于类型系统沟通 一个字段总是一个有限值集合中的一个值
+```
+enum Episode{
+	NEWHOPE
+	EMPIRE
+	JEDO
+}
+```
+上面的就表示 无论我们在schema的哪处使用Episode 都是上面类型中的一种
+
+接口(Interfaces)  这个和在java中的接口比较类似  你手动写一个比较大的接口 然后实现的话 在继承的基础上书写更多的细节
+```
+interface Character {
+  id: ID!
+  name: String!
+  friends: [Character]
+  appearsIn: [Episode]!
+}
+
+// 在继承的基础行进行了拓展
+type Human implements Character {
+  id: ID!
+  name: String!
+  friends: [Character]
+  appearsIn: [Episode]!
+  starships: [Starship]
+  totalCredits: Int
+}
+
+type Droid implements Character {
+  id: ID!
+  name: String!
+  friends: [Character]
+  appearsIn: [Episode]!
+  primaryFunction: String
+}
+```
+内联片段(Inline Fragmetns)
+```
+query HeroForEpisode($ep: Episode!) {
+  hero(episode: $ep) {
+    name
+    ... on Droid {
+      primaryFunction
+    }
+    ... on Human {
+      height
+    }
+  }
+}
+上面的查询 hero字段返回Character类型 取决于episode 通过了解这个是一个枚举类型  所以这个的解释就是  如果返回的类型是 Droid 就查询  primaryFunction  如果是Human 就返回height 字段 
+```
+
+联合类型（Union Types）
+```
+{
+  search(text: "o") {
+    __typename
+    ... on Human {
+      name
+      height
+    }
+    ... on Droid {
+      name
+      primaryFunction
+    }
+    ... on Starship {
+      name
+      length
+    }
+  }
+}
+如果我们不添加 __typename的话  就是ifd的关系  如果返回的视哪一个对象 我们查询哪个字段
+```
+
+输入类型(Input Types)
+```
+input ReviewInput {
+  stars: Int!
+  commentary: String
+}
+
+mutation CreateReviewForEpisode($ep: Episode!, $review: ReviewInput!) {
+  createReview(episode: $ep, review: $review) {
+    stars
+    commentary
+  }
+}
+参数
+{
+  "ep": "JEDI",
+  "review": {
+    "stars": 5,
+    "commentary": "This is a great movie!"
+  }
+}
+也可以这样用
+```
 
 
 
